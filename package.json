@@ -1,0 +1,12 @@
+{
+  "name": "Mnemosyne",
+  "version": "0.0.3",
+  "homepage": "",
+  "scripts": {
+    "start": "node m"
+  },
+  "description": "A quick memo utility works in cli.",
+  "dependencies": {
+    "sqlite3": "*"
+  }
+}
