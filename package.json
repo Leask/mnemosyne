@@ -7,6 +7,7 @@
   },
   "description": "A quick memo utility works in cli.",
   "dependencies": {
-    "sqlite3": "*"
+    "sqlite3": "*",
+    "tab": "*"
   }
 }

@@ -1,15 +1,19 @@
 #!/usr/bin/env node
 //
 
-// load configurations
-var env = require('./env');
+// load requirements
+var env   = require('./env'),
+    memo  = require('./memo'),
+    table = require('tab');
+
+// check configurations
 if (!env) {
     console.log(':( Error loading configurations');
     process.exit(1);
 }
 
-// load requirements
-var sqlite = require('sqlite3').verbose();
+// init
+memo.Init(env);
  // initMnemosyne() {
  //     if [ -e "$basePath" ]; then
  //         logFile="$basePath$logFile"
@@ -25,86 +29,54 @@ var sqlite = require('sqlite3').verbose();
 
 // db init
 
-var getAllMemos = function(callback) {
-    var db = new sqlite.Database(env.dbFile);
-    db.all(
-        'SELECT * FROM `memos` WHERE '
-      + "`status` != 'DELETED' "
-      + 'ORDER BY `updated_at` DESC',
-        function(err, data) {
-            db.close();
-            if (err) {
-                console.log(':( ' + err);
-                process.exit(1);
-            }
-            callback(data);
-        }
-    );
-};
 
-var searchForMemos = function(keyword, callback) {
-    var db = new sqlite.Database(env.dbFile);
-    db.all(
-        'SELECT * FROM `memos` WHERE '
-      + "`memo` LIKE '%keyword%'",
-        function(err, data) {
-            db.close();
-            if (err) {
-                console.log(':( ' + err);
-                process.exit(1);
-            }
-            callback(data);
-        }
-    );
-};
+// var getMemoById = function(id, callback) {
+//     var db = new sqlite.Database(env.dbFile);
+//     db.get(
+//         'SELECT * FROM `memos` WHERE `id` = ?',
+//         id,
+//         function(err, data) {
+//             db.close();
+//             if (err) {
+//                 console.log(':( ' + err);
+//                 process.exit(1);
+//             }
+//             callback(data);
+//         }
+//     );
+// };
 
-var getMemoById = function(id, callback) {
-    var db = new sqlite.Database(env.dbFile);
-    db.get(
-        'SELECT * FROM `memos` WHERE `id` = ?',
-        id,
-        function(err, data) {
-            db.close();
-            if (err) {
-                console.log(':( ' + err);
-                process.exit(1);
-            }
-            callback(data);
-        }
-    );
-};
+var renderMemos = function(memos) {
+    // instantiate
+    var output = new table({
+        head: ['ID', 'MEMO', 'HIT', 'CREATED', 'UPDATED', 'LAST MATCHED']
+      , colWidths: [4, 20, 5, 10, 10, 10]
+    });
+    // table is an Array, so you can `push`, `unshift`, `splice` and friends
+    for (var i = 0; i < memos.length; i++) {
+        output.push([
+            memos[i].rowid,
+            memos[i].memo,
+            memos[i].hits,
+            memos[i].created_at,
+            memos[i].updated_at,
+            memos[i].last_matched
+        ]);
+    }
+    console.log(output.toString());
+}
 
-var newMemo = function(memo, callback) {
-    var db = new sqlite.Database(env.dbFile);
-    db.run(
-        'INSERT INTO `memos` '
-      + '(`memo`, `created_at`, `updated_at`, `deleted_at`, `status`, `first_matched`, `last_matched`, `hits`) '
-      + 'VALUES '
-      + "(?, datetime('now'), datetime('now'), datetime('now'), 'NORMAL', datetime('now'), datetime('now'), 1)",
-        memo,
-        function(err) {
-            db.close();
-            if (err) {
-                console.log(':( ' + err);
-                process.exit(1);
-            }
-            getMemoById(this.lastID, callback);
-        }
-    );
-};
+memo.GetAll(function(err, data) {
+    renderMemos(data);
+});
 
 var touchMemo = function(memo, callback) {
 
 };
 
-// db.serialize(function() {
-    //
-// });
-//
-
-newMemo('okok test 中文', function(data) {
-    console.log(data);
-})
+// memo.Touch('okok test 中asdfasdfsdf文', function(err, data) {
+//     // console.log(data);
+// })
 
 // searchForMemos()
 
