@@ -8,8 +8,8 @@ fi
 if [ -e $dbFile ]; then
     sqlite3 $dbFile .schema > db-schema.sql
     sqlite3 $dbFile .dump   > db-dump.sql
-    echo 'Done :)'
+    echo ':) Done'
 else
-    echo 'Failed :('
+    echo ':( Failed'
     exit 1
 fi

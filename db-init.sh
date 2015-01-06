@@ -9,4 +9,4 @@ if [ -e $dbFile ]; then
     rm $dbFile
 fi
 cat db-schema.sql | sqlite3 $dbFile
-echo 'Done :)'
+echo ':) Done'
