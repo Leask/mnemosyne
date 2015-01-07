@@ -13,8 +13,19 @@ if (!env) {
     process.exit(1);
 }
 
+// patch prototypes
+if (!String.prototype.trim) {
+    String.prototype.trim = function () {
+        return this.replace(/^\s+|\s+$/gm, '');
+    };
+}
+
 // init
 memo.Init(env);
+
+var relativeTime = function(absTime) {
+    return moment(absTime).fromNow();
+};
 
 var renderMemos = function(memos) {
     var output = new table({
@@ -26,13 +37,13 @@ var renderMemos = function(memos) {
             memos[i].rowid,
             memos[i].memo,
             memos[i].hits,
-            moment(memos[i].created_at).fromNow(),
-            moment(memos[i].updated_at).fromNow(),
-            moment(memos[i].last_hit  ).fromNow()
+            relativeTime(memos[i].created_at),
+            relativeTime(memos[i].updated_at),
+            relativeTime(memos[i].last_hit)
         ]);
     }
     console.log(output.toString());
-}
+};
 
 var list = function() {
     memo.GetAll(function(err, data) {
@@ -42,7 +53,7 @@ var list = function() {
         }
         renderMemos(data);
     });
-}
+};
 
 var touch = function(text) {
     memo.Touch(text, function(err, data) {
@@ -51,6 +62,16 @@ var touch = function(text) {
             process.exit(1);
         }
         renderMemos([data]);
+    })
+};
+
+var search = function() {
+    memo.Search(text, function(err, data) {
+        if (err) {
+            console.log(':( ' + err);
+            process.exit(1);
+        }
+        renderMemos(data);
     })
 };
 
@@ -75,13 +96,13 @@ var help = function() {
 
 var unknownCommand = function() {
     console.log(':( Unknown command');
-}
+};
 
 // main
 process.argv.shift();
 process.argv.shift();
 var command = process.argv.shift();
-var text    = process.argv.join(' ');
+var text    = process.argv.join(' ').trim();
 switch (command) {
     case 'list':
     case 'l':

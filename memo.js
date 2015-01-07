@@ -22,6 +22,22 @@ var memo = function() {
         }
     }
 
+    var _now = function() {
+        return new Date().toISOString();
+    }
+
+    var _escape = function(str) {
+        return str.replace('/', '//')
+                  .replace("'", "''")
+                  .replace('[', '/[')
+                  .replace(']', '/]')
+                  .replace('%', '/%')
+                  .replace('&', '/&')
+                  .replace('_', '/_')
+                  .replace('(', '/(')
+                  .replace(')', '/)');
+    }
+
     var _getAll = function(callback) {
         _db.all(
             'SELECT rowid, * FROM `memos` WHERE '
@@ -32,21 +48,19 @@ var memo = function() {
     };
 
     var _touchByKeyword = function(keyword, callback) {
-        var now = new Date().toString();
         _db.run(
             'UPDATE `memos` SET '
           + "`status` = 'NORMAL', "
           + "`last_hit` = ?, "
           + "`hits`     = `hits` + 1 WHERE "
-          + '`memo` MATCH ? AND '
+          + "`memo` LIKE '%" + _escape(keyword) + "%' AND " // MATCH
           + "`status`  != 'DELETED'",
-            [now, keyword],
+            [_now()],
             callback
         );
     };
 
     var _touchById = function(id, callback) {
-        var now = new Date().toString();
         _db.run(
             'UPDATE `memos` SET '
           + "`status`   = 'NORMAL', "
@@ -54,7 +68,7 @@ var memo = function() {
           + '`hits`     = `hits` + 1 WHERE'
           + '`rowid`    = ? AND '
           + "`status`  != 'DELETED'",
-            [now, id],
+            [_now(), id],
             callback
         );
     };
@@ -62,9 +76,8 @@ var memo = function() {
     var _searchByKeyword = function(keyword, callback) {
         _db.all(
             'SELECT rowid, * FROM `memos` WHERE '
-          + '`memo` MATCH ? AND '
+          + "`memo` LIKE '%" + _escape(keyword) + "%' AND " // MATCH
           + "`status`  != 'DELETED'",
-            keyword,
             function(err, data) {
                 if (err) {
                     return callback(err);
@@ -96,13 +109,12 @@ var memo = function() {
     };
 
     var _add = function(memo, callback) {
-        var now = new Date().toString();
         _db.run(
             'INSERT INTO `memos` '
           + '(`memo`, `created_at`, `updated_at`, `deleted_at`, `status`, `last_hit`, `hits`) '
           + 'VALUES '
           + "(?, ?, ?, ?, 'NORMAL', ?, 1)",
-            [memo, now, now, now, now],
+            [memo, _now(), _now(), _now(), _now()],
             function(err) {
                 if (err) {
                     return callback(err);
@@ -131,13 +143,13 @@ var memo = function() {
     };
 
     return {
-        Init            : _init,
-        Del             : _del,
-        GetAll          : _getAll,
-        SearchByKeyword : _searchByKeyword,
-        GetById         : _getById,
-        Add             : _add,
-        Touch           : _touch
+        Init    : _init,
+        Del     : _del,
+        GetAll  : _getAll,
+        Search  : _searchByKeyword,
+        GetById : _getById,
+        Add     : _add,
+        Touch   : _touch
     };
 
 }();

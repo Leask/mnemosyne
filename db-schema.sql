@@ -1,9 +1,9 @@
 CREATE VIRTUAL TABLE `memos` USING fts4 (
-    `memo` TEXT NOT NULL,
-    `created_at` DATETIME,
-    `updated_at` DATETIME,
-    `deleted_at` DATETIME,
-    `status`     TEXT,
-    `last_hit`   DATETIME,
-    `hits` INTEGER DEFAULT 0
+    `memo`       TEXT     NOT NULL,
+    `created_at` DATETIME NOT NULL,
+    `updated_at` DATETIME NOT NULL,
+    `deleted_at` DATETIME NOT NULL,
+    `status`     TEXT     NOT NULL,
+    `last_hit`   DATETIME NOT NULL,
+    `hits`       INTEGER  NOT NULL DEFAULT 0
 );
