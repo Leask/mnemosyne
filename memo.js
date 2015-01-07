@@ -40,7 +40,7 @@ var memo = function() {
 
     var _getAll = function(callback) {
         _db.all(
-            'SELECT `rowid`, * FROM `memos` WHERE '
+            'SELECT * FROM `memos` WHERE '
           + "`status` != 'DELETED' "
           + 'ORDER BY `last_hit` DESC',
             callback
@@ -65,7 +65,7 @@ var memo = function() {
           + "`status`   = 'NORMAL', "
           + "`last_hit` = ?, "
           + '`hits`     = `hits` + 1 WHERE'
-          + '`rowid`    = ?',
+          + '`id`       = ?',
             [_now(), id],
             callback
         );
@@ -74,9 +74,9 @@ var memo = function() {
     var _searchByKeyword = function(keyword, callback) {
         if (keyword) {
             _db.all(
-                'SELECT `rowid`, * FROM `memos` WHERE '
+                'SELECT * FROM `memos` WHERE '
               + "`memo` LIKE '%" + _escape(keyword) + "%' AND " // MATCH
-              + "`status`  != 'DELETED' "
+              + "`status` != 'DELETED' "
               + 'ORDER BY `last_hit` DESC',
                 function(err, data) {
                     if (err) {
@@ -95,17 +95,17 @@ var memo = function() {
         }
     };
 
-    var _searchAllByKeyword = function(keyword, callback) {
+    var _matchAll = function(memo, callback) {
         _db.all(
-            'SELECT `rowid`, * FROM `memos` WHERE `memo` MATCH ?',
-            keyword,
+            'SELECT * FROM `memos` WHERE `memo` = ?',
+            memo,
             callback
         );
     };
 
     var _getById = function(id, callback) {
         _db.get(
-            'SELECT `rowid`, * FROM `memos` WHERE `rowid` = ?',
+            'SELECT * FROM `memos` WHERE `id` = ?',
             id,
             function(err, data) {
                 if (err) {
@@ -126,7 +126,7 @@ var memo = function() {
             'UPDATE `memos` SET '
           + "`status`     = 'DELETED', "
           + "`deleted_at` = ? WHERE "
-          + '`rowid`      = ? AND '
+          + '`id`         = ? AND '
           + "`status`    != 'DELETED'",
             [_now(), id],
             function(err, data) {
@@ -159,12 +159,12 @@ var memo = function() {
     };
 
     var _touch = function(memo, callback) {
-        _searchAllByKeyword(memo, function(err, data) {
+        _matchAll(memo, function(err, data) {
             if (err) {
                 return callback(err);
             }
             if (data.length) {
-                _touchById(data[0].rowid, function(tErr, tData) {
+                _touchById(data[0].id, function(tErr, tData) {
                     if (tErr) {
                         console.log(':( ' + tErr);
                     }
@@ -178,7 +178,7 @@ var memo = function() {
 
     var _getTrash = function(callback) {
         _db.all(
-            'SELECT   `rowid`, * FROM `memos` '
+            'SELECT * FROM `memos` '
           + "WHERE    `status` = 'DELETED' "
           + 'ORDER BY `deleted_at` DESC',
             callback

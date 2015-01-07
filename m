@@ -45,7 +45,7 @@ if (!String.prototype.trim) {
 // functions
 var renderMemo = function(memo) {
     console.log(
-        'ID       : ' + memo.rowid                    + '\n'
+        'ID       : ' + memo.id                       + '\n'
       + 'HITS     : ' + memo.hits                     + '\n'
       + 'CREATED  : ' + absoluteTime(memo.created_at) + '\n'
       + 'UPDATED  : ' + absoluteTime(memo.updated_at) + '\n'
@@ -80,7 +80,7 @@ var renderMemos = function(memos) {
     )
     for (i = 0; i < memos.length; i++) {
         output.push([
-            memos[i].rowid,
+            memos[i].id,
             memos[i].memo.replace(/\n/g, ' '),
             memos[i].hits,
             relativeTime(memos[i].created_at),

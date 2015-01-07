@@ -1,5 +1,6 @@
-CREATE VIRTUAL TABLE `memos` USING fts4 (
-    `memo`       TEXT     NOT NULL,
+CREATE TABLE `memos` (
+    `id`         INTEGER PRIMARY KEY AUTOINCREMENT,
+    `memo`       TEXT     NOT NULL UNIQUE,
     `created_at` DATETIME NOT NULL,
     `updated_at` DATETIME NOT NULL,
     `deleted_at` DATETIME NOT NULL,
