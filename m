@@ -53,12 +53,12 @@ var renderMemo = function(memo) {
 
 var renderMemos = function(memos) {
     var width = {
-        ID       : 5,
+        ID       : 7,
         MEMO     : process.stdout.columns,
-        HITS     : 5,
-        CREATED  : 20,
-        UPDATED  : 20,
-        LAST_HIT : 20
+        HITS     : 7,
+        CREATED  : 21,
+        UPDATED  : 21,
+        LAST_HIT : 21
     };
     for (var i in width) {
         if (i !== 'MEMO') {
@@ -123,7 +123,7 @@ var touch = function(text) {
             console.log(':( ' + err);
             process.exit(1);
         }
-        render([data]);
+        render(data);
     })
 };
 
@@ -138,7 +138,7 @@ var search = function() {
 };
 
 var fetchStdin = function(callback) {
-    var stdinChunk = null;
+    var stdinChunk = '';
     process.stdin.setEncoding('utf8');
     process.stdin.on('readable', function() {
         var chunk = process.stdin.read();
@@ -161,38 +161,49 @@ var unknownCommand = function() {
     console.log(':( Unknown command');
 };
 
+var exec = function(command, text) {
+    command.trim();
+    text.trim();
+    switch (command) {
+        case 'list':
+        case 'l':
+            list();
+            break;
+        case 'get':
+        case 'g':
+            get(text);
+            break;
+        case 'touch':
+        case 't':
+            touch(text);
+            break;
+        case 'search':
+        case 's':
+            search(text);
+            break;
+        case 'help':
+        case 'h':
+            help();
+            break;
+        default:
+            unknownCommand();
+            process.exit(1);
+    }
+};
+
 // main
 process.argv.shift();
 process.argv.shift();
 var command = process.argv.shift();
-var text    = process.argv.join(' ').trim();
-switch (command) {
-    case 'list':
-    case 'l':
-        list();
-        break;
-    case 'get':
-    case 'g':
-        get(text);
-        break;
-    case 'touch':
-    case 't':
-        touch(text);
-        break;
-    case 'search':
-    case 's':
-        search(text);
-        break;
-    case 'help':
-    case 'h':
-        help();
-        break;
-    default:
-        unknownCommand();
-        process.exit(1);
-}
+var text    = process.argv.join(' ');
 if (process.stdin._readableState.highWaterMark) {
-    // fetchStdin(parseList);
+    fetchStdin(function(err, text) {
+        if (err) {
+            console.log(':( ' + err);
+            process.exit(1);
+        }
+        exec(command ? command : 'touch', text);
+    });
 } else {
-    // fetchList(parseList);
+    exec(command, text);
 }
