@@ -40,7 +40,7 @@ var memo = function() {
 
     var _getAll = function(callback) {
         _db.all(
-            'SELECT rowid, * FROM `memos` WHERE '
+            'SELECT `rowid`, * FROM `memos` WHERE '
           + "`status` != 'DELETED' "
           + 'ORDER BY `last_hit` DESC',
             callback
@@ -50,7 +50,6 @@ var memo = function() {
     var _touchByKeyword = function(keyword, callback) {
         _db.run(
             'UPDATE `memos` SET '
-          + "`status` = 'NORMAL', "
           + "`last_hit` = ?, "
           + "`hits`     = `hits` + 1 WHERE "
           + "`memo` LIKE '%" + _escape(keyword) + "%' AND " // MATCH
@@ -66,35 +65,39 @@ var memo = function() {
           + "`status`   = 'NORMAL', "
           + "`last_hit` = ?, "
           + '`hits`     = `hits` + 1 WHERE'
-          + '`rowid`    = ? AND '
-          + "`status`  != 'DELETED'",
+          + '`rowid`    = ?',
             [_now(), id],
             callback
         );
     };
 
     var _searchByKeyword = function(keyword, callback) {
-        _db.all(
-            'SELECT rowid, * FROM `memos` WHERE '
-          + "`memo` LIKE '%" + _escape(keyword) + "%' AND " // MATCH
-          + "`status`  != 'DELETED'",
-            function(err, data) {
-                if (err) {
-                    return callback(err);
-                }
-                _touchByKeyword(keyword, function(tErr, tData) {
-                    if (tErr) {
-                        console.log(':( ' + tErr);
+        if (keyword) {
+            _db.all(
+                'SELECT `rowid`, * FROM `memos` WHERE '
+              + "`memo` LIKE '%" + _escape(keyword) + "%' AND " // MATCH
+              + "`status`  != 'DELETED' "
+              + 'ORDER BY `last_hit` DESC',
+                function(err, data) {
+                    if (err) {
+                        return callback(err);
                     }
-                    callback(null, data);
-                });
-            }
-        );
+                    _touchByKeyword(keyword, function(tErr, tData) {
+                        if (tErr) {
+                            console.log(':( ' + tErr);
+                        }
+                        callback(null, data);
+                    });
+                }
+            );
+        } else {
+            _getAll(callback);
+        }
     };
 
     var _searchAllByKeyword = function(keyword, callback) {
         _db.all(
-            'SELECT rowid, * FROM `memos` WHERE `memo` MATCH ?',
+            'SELECT `rowid`, * FROM `memos` WHERE `memo` MATCH ?',
             keyword,
             callback
         );
@@ -102,16 +105,47 @@ var memo = function() {
 
     var _getById = function(id, callback) {
         _db.get(
-            'SELECT rowid, * FROM `memos` WHERE `rowid` = ?',
+            'SELECT `rowid`, * FROM `memos` WHERE `rowid` = ?',
             id,
-            callback
+            function(err, data) {
+                if (err) {
+                    return callback(err);
+                }
+                _touchById(id, function(tErr, tData) {
+                    if (tErr) {
+                        console.log(':( ' + tErr);
+                    }
+                    callback(null, data);
+                })
+            }
+        );
+    };
+
+    var _delById = function(id, callback) {
+        _db.run(
+            'UPDATE `memos` SET '
+          + "`status`     = 'DELETED', "
+          + "`deleted_at` = ? WHERE "
+          + '`rowid`      = ? AND '
+          + "`status`    != 'DELETED'",
+            [_now(), id],
+            function(err, data) {
+                if (err) {
+                    return callback(err);
+                }
+                if (!this.changes) {
+                    return callback('Memo not found');
+                }
+                callback(err, data);
+            }
         );
     };
 
     var _add = function(memo, callback) {
         _db.run(
             'INSERT INTO `memos` '
-          + '(`memo`, `created_at`, `updated_at`, `deleted_at`, `status`, `last_hit`, `hits`) '
+          + '(`memo`  , `created_at`, `updated_at`, `deleted_at`,'
+          + ' `status`, `last_hit`  , `hits`) '
           + 'VALUES '
           + "(?, ?, ?, ?, 'NORMAL', ?, 1)",
             [memo, _now(), _now(), _now(), _now()],
@@ -142,14 +176,41 @@ var memo = function() {
         });
     };
 
+    var _getTrash = function(callback) {
+        _db.all(
+            'SELECT   `rowid`, * FROM `memos` '
+          + "WHERE    `status` = 'DELETED' "
+          + 'ORDER BY `deleted_at` DESC',
+            callback
+        );
+    };
+
+    var _emptyTrash = function(callback) {
+        _db.run(
+            "DELETE FROM `memos` WHERE `status` = 'DELETED'",
+            function(err, data) {
+                if (err) {
+                    return callback(err);
+                }
+                if (!this.changes) {
+                    return callback('Trash is empty');
+                }
+                callback(err, data);
+            }
+        );
+    }
+
     return {
-        Init    : _init,
-        Del     : _del,
-        GetAll  : _getAll,
-        Search  : _searchByKeyword,
-        GetById : _getById,
-        Add     : _add,
-        Touch   : _touch
+        Init       : _init,
+        Del        : _del,
+        GetAll     : _getAll,
+        Search     : _searchByKeyword,
+        GetById    : _getById,
+        DelById    : _delById,
+        Add        : _add,
+        Touch      : _touch,
+        GetTrash   : _getTrash,
+        EmptyTrash : _emptyTrash
     };
 
 }();

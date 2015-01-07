@@ -7,19 +7,6 @@ var env    = require('./env'),
     table  = require('cli-table'),
     moment = require('moment');
 
-// check configurations
-if (!env) {
-    console.log(':( Error loading configurations');
-    process.exit(1);
-}
-
-// patch prototypes
-if (!String.prototype.trim) {
-    String.prototype.trim = function () {
-        return this.replace(/^\s+|\s+$/gm, '');
-    };
-}
-
 // utilities
 var type = function(object) {
     return Object.prototype.toString.call(object).slice(8, -1).toLowerCase();
@@ -29,9 +16,6 @@ var isArray = function(object) {
     return type(object) === 'array';
 }
 
-// init
-memo.Init(env);
-
 var absoluteTime = function(rawTime) {
     return new Date(rawTime).toString();
 };
@@ -40,6 +24,25 @@ var relativeTime = function(rawTime) {
     return moment(rawTime).fromNow();
 };
 
+var exit = function() {
+    memo.Del();
+    process.exit(1);
+}
+
+// check configurations
+if (!env) {
+    console.log(':( Error loading configurations');
+    exit();
+}
+
+// patch prototypes
+if (!String.prototype.trim) {
+    String.prototype.trim = function () {
+        return this.replace(/^\s+|\s+$/gm, '');
+    };
+}
+
+// functions
 var renderMemo = function(memo) {
     console.log(
         'ID       : ' + memo.rowid                    + '\n'
@@ -78,7 +81,7 @@ var renderMemos = function(memos) {
     for (i = 0; i < memos.length; i++) {
         output.push([
             memos[i].rowid,
-            memos[i].memo,
+            memos[i].memo.replace(/\n/g, ' '),
             memos[i].hits,
             relativeTime(memos[i].created_at),
             relativeTime(memos[i].updated_at),
@@ -92,36 +95,40 @@ var render = function(data) {
     return isArray(data) ? renderMemos(data) : renderMemo(data);
 };
 
-var list = function() {
-    memo.GetAll(function(err, data) {
+var checkId = function(id) {
+    id = Number(id);
+    if (isNaN(id)) {
+        console.log(':( Error memo id');
+        exit();
+    }
+    return id;
+};
+
+var get = function(id) {
+    memo.GetById(checkId(id), function(err, data) {
         if (err) {
             console.log(':( ' + err);
-            process.exit(1);
+            exit();
         }
         render(data);
     });
 };
 
-var get = function(id) {
-    id = Number(id);
-    if (isNaN(id)) {
-        console.log(':( Error memo id');
-        process.exit(1);
-    }
-    memo.GetById(id, function(err, data) {
+var del = function(id) {
+    memo.DelById(checkId(id), function(err, data) {
         if (err) {
             console.log(':( ' + err);
-            process.exit(1);
+            exit();
         }
-        render(data);
+        console.log(':) Done');
     });
-}
+};
 
 var touch = function(text) {
     memo.Touch(text, function(err, data) {
         if (err) {
             console.log(':( ' + err);
-            process.exit(1);
+            exit();
         }
         render(data);
     })
@@ -131,9 +138,29 @@ var search = function() {
     memo.Search(text, function(err, data) {
         if (err) {
             console.log(':( ' + err);
-            process.exit(1);
+            exit();
         }
         render(data);
+    })
+};
+
+var trash = function() {
+    memo.GetTrash(function(err, data) {
+        if (err) {
+            console.log(':( ' + err);
+            exit();
+        }
+        render(data);
+    })
+};
+
+var empty = function() {
+    memo.EmptyTrash(function(err, data) {
+        if (err) {
+            console.log(':( ' + err);
+            exit();
+        }
+        console.log(':) Done');
     })
 };
 
@@ -150,29 +177,23 @@ var fetchStdin = function(callback) {
 };
 
 var help = function() {
-    console.log('- l / list   : text');
-    console.log('- g / get    : text');
-    console.log('- t / touch  : text');
-    console.log('- s / search : text');
-    console.log('- h / help   : text');
+    console.log('- (t)ouch  : text');
+    console.log('- (s)earch : text');
+    console.log('- (g)et    : text');
+    console.log('- t(r)ash  : text');
+    console.log('- DEL      : text');
+    console.log('- EMPTY    : text');
+    console.log('- (h)elp   : text');
 }
 
 var unknownCommand = function() {
     console.log(':( Unknown command');
 };
 
-var exec = function(command, text) {
-    command.trim();
-    text.trim();
+var exec = function() {
+    command = (command || 'touch').trim();
+    text    = (text    || ''     ).trim();
     switch (command) {
-        case 'list':
-        case 'l':
-            list();
-            break;
-        case 'get':
-        case 'g':
-            get(text);
-            break;
         case 'touch':
         case 't':
             touch(text);
@@ -181,17 +202,32 @@ var exec = function(command, text) {
         case 's':
             search(text);
             break;
+        case 'get':
+        case 'g':
+            get(text);
+            break;
+        case 'trash':
+        case 'r':
+            trash();
+            break;
+        case 'DEL':
+            del(text);
+            break;
+        case 'EMPTY':
+            empty();
+            break;
         case 'help':
         case 'h':
             help();
             break;
         default:
             unknownCommand();
-            process.exit(1);
+            exit();
     }
 };
 
 // main
+memo.Init(env);
 process.argv.shift();
 process.argv.shift();
 var command = process.argv.shift();
@@ -200,10 +236,10 @@ if (process.stdin._readableState.highWaterMark) {
     fetchStdin(function(err, text) {
         if (err) {
             console.log(':( ' + err);
-            process.exit(1);
+            exit();
         }
-        exec(command ? command : 'touch', text);
+        exec();
     });
 } else {
-    exec(command, text);
+    exec();
 }
