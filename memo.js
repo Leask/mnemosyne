@@ -26,7 +26,35 @@ var memo = function() {
         _db.all(
             'SELECT rowid, * FROM `memos` WHERE '
           + "`status` != 'DELETED' "
-          + 'ORDER BY `updated_at` DESC',
+          + 'ORDER BY `last_hit` DESC',
+            callback
+        );
+    };
+
+    var _touchByKeyword = function(keyword, callback) {
+        var now = new Date().toString();
+        _db.run(
+            'UPDATE `memos` SET '
+          + "`status` = 'NORMAL', "
+          + "`last_hit` = ?, "
+          + "`hits`     = `hits` + 1 WHERE "
+          + '`memo` MATCH ? AND '
+          + "`status`  != 'DELETED'",
+            [now, keyword],
+            callback
+        );
+    };
+
+    var _touchById = function(id, callback) {
+        var now = new Date().toString();
+        _db.run(
+            'UPDATE `memos` SET '
+          + "`status`   = 'NORMAL', "
+          + "`last_hit` = ?, "
+          + '`hits`     = `hits` + 1 WHERE'
+          + '`rowid`    = ? AND '
+          + "`status`  != 'DELETED'",
+            [now, id],
             callback
         );
     };
@@ -34,7 +62,27 @@ var memo = function() {
     var _searchByKeyword = function(keyword, callback) {
         _db.all(
             'SELECT rowid, * FROM `memos` WHERE '
-          + "`memo` MATCH '" + keyword + "'",
+          + '`memo` MATCH ? AND '
+          + "`status`  != 'DELETED'",
+            keyword,
+            function(err, data) {
+                if (err) {
+                    return callback(err);
+                }
+                _touchByKeyword(keyword, function(tErr, tData) {
+                    if (tErr) {
+                        console.log(':( ' + tErr);
+                    }
+                    callback(null, data);
+                });
+            }
+        );
+    };
+
+    var _searchAllByKeyword = function(keyword, callback) {
+        _db.all(
+            'SELECT rowid, * FROM `memos` WHERE `memo` MATCH ?',
+            keyword,
             callback
         );
     };
@@ -48,28 +96,34 @@ var memo = function() {
     };
 
     var _add = function(memo, callback) {
+        var now = new Date().toString();
         _db.run(
             'INSERT INTO `memos` '
-          + '(`memo`, `created_at`, `updated_at`, `deleted_at`, `status`, `first_matched`, `last_matched`, `hits`) '
+          + '(`memo`, `created_at`, `updated_at`, `deleted_at`, `status`, `last_hit`, `hits`) '
           + 'VALUES '
-          + "(?, datetime('now'), datetime('now'), datetime('now'), 'NORMAL', datetime('now'), datetime('now'), 1)",
-            memo,
+          + "(?, ?, ?, ?, 'NORMAL', ?, 1)",
+            [memo, now, now, now, now],
             function(err) {
                 if (err) {
                     return callback(err);
                 }
-                _getById(this.lastInsertRowID, callback);
+                _getById(this.lastID, callback);
             }
         );
     };
 
     var _touch = function(memo, callback) {
-        _searchByKeyword(memo, function(err, data) {
+        _searchAllByKeyword(memo, function(err, data) {
             if (err) {
                 return callback(err);
             }
             if (data.length) {
-                callback(null, data)
+                _touchById(data[0].rowid, function(tErr, tData) {
+                    if (tErr) {
+                        console.log(':( ' + tErr);
+                    }
+                    callback(null, data[0]);
+                });
             } else {
                 _add(memo, callback);
             }

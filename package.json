@@ -8,6 +8,7 @@
   "description": "A quick memo utility works in cli.",
   "dependencies": {
     "sqlite3": "*",
-    "tab": "*"
+    "cli-table": "git+https://github.com/Leask/cli-table.git",
+    "moment": "*"
   }
 }

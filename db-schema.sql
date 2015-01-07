@@ -3,8 +3,7 @@ CREATE VIRTUAL TABLE `memos` USING fts4 (
     `created_at` DATETIME,
     `updated_at` DATETIME,
     `deleted_at` DATETIME,
-    `status` TEXT,
-    `first_matched` DATETIME,
-    `last_matched` DATETIME,
+    `status`     TEXT,
+    `last_hit`   DATETIME,
     `hits` INTEGER DEFAULT 0
 );

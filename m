@@ -2,9 +2,10 @@
 //
 
 // load requirements
-var env   = require('./env'),
-    memo  = require('./memo'),
-    table = require('tab');
+var env    = require('./env'),
+    memo   = require('./memo'),
+    table  = require('cli-table'),
+    moment = require('moment');
 
 // check configurations
 if (!env) {
@@ -14,75 +15,44 @@ if (!env) {
 
 // init
 memo.Init(env);
- // initMnemosyne() {
- //     if [ -e "$basePath" ]; then
- //         logFile="$basePath$logFile"
- //         echoWithLog "<<<<<<< Flora BlackBox >>>>>>>\n"
- //     else
- //         logFile=".$logFile"
- //         errorNotify 'BlackBox Missing'
- //         exit 1
- //     fi
- // }
- // # Mnemosyne configurations
- // dbPath=./
-
-// db init
-
-
-// var getMemoById = function(id, callback) {
-//     var db = new sqlite.Database(env.dbFile);
-//     db.get(
-//         'SELECT * FROM `memos` WHERE `id` = ?',
-//         id,
-//         function(err, data) {
-//             db.close();
-//             if (err) {
-//                 console.log(':( ' + err);
-//                 process.exit(1);
-//             }
-//             callback(data);
-//         }
-//     );
-// };
 
 var renderMemos = function(memos) {
-    // instantiate
     var output = new table({
-        head: ['ID', 'MEMO', 'HIT', 'CREATED', 'UPDATED', 'LAST MATCHED']
-      , colWidths: [4, 20, 5, 10, 10, 10]
+        head: ['ID', 'MEMO', 'HIT', 'CREATED', 'UPDATED', 'LAST HIT']
+      , colWidths: [5, 50, 5, 20, 20, 20]
     });
-    // table is an Array, so you can `push`, `unshift`, `splice` and friends
     for (var i = 0; i < memos.length; i++) {
         output.push([
             memos[i].rowid,
             memos[i].memo,
             memos[i].hits,
-            memos[i].created_at,
-            memos[i].updated_at,
-            memos[i].last_matched
+            moment(memos[i].created_at).fromNow(),
+            moment(memos[i].updated_at).fromNow(),
+            moment(memos[i].last_hit  ).fromNow()
         ]);
     }
     console.log(output.toString());
 }
 
-memo.GetAll(function(err, data) {
-    renderMemos(data);
-});
+var list = function() {
+    memo.GetAll(function(err, data) {
+        if (err) {
+            console.log(':( ' + err);
+            process.exit(1);
+        }
+        renderMemos(data);
+    });
+}
 
-var touchMemo = function(memo, callback) {
-
+var touch = function(text) {
+    memo.Touch(text, function(err, data) {
+        if (err) {
+            console.log(':( ' + err);
+            process.exit(1);
+        }
+        renderMemos([data]);
+    })
 };
-
-// memo.Touch('okok test 中asdfasdfsdf文', function(err, data) {
-//     // console.log(data);
-// })
-
-// searchForMemos()
-
-// getAllMemos(function(data) {
-//     console.log(data);
-// })
 
 var fetchStdin = function(callback) {
     var stdinChunk = null;
@@ -97,9 +67,10 @@ var fetchStdin = function(callback) {
 };
 
 var help = function() {
-    console.log('- new    : text');
-    console.log('- search : text');
-    console.log('- help   : text');
+    console.log('- l / list   : text');
+    console.log('- t / touch  : text');
+    console.log('- s / search : text');
+    console.log('- h / help   : text');
 }
 
 var unknownCommand = function() {
@@ -112,11 +83,17 @@ process.argv.shift();
 var command = process.argv.shift();
 var text    = process.argv.join(' ');
 switch (command) {
-    case 'new':
-    case 'n':
+    case 'list':
+    case 'l':
+        list();
+        break;
+    case 'touch':
+    case 't':
+        touch(text);
         break;
     case 'search':
     case 's':
+        search(text);
         break;
     case 'help':
     case 'h':
