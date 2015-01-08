@@ -6,5 +6,6 @@ CREATE TABLE `memos` (
     `deleted_at` DATETIME NOT NULL,
     `status`     TEXT     NOT NULL,
     `last_hit`   DATETIME NOT NULL,
+    `coordinate` TEXT     NOT NULL,
     `hits`       INTEGER  NOT NULL DEFAULT 0
 );

@@ -51,12 +51,13 @@ if (!String.prototype.trim) {
 // functions
 var renderMemo = function(memo) {
     console.log(
-        'ID       : ' + memo.id                       + '\n'
-      + 'HITS     : ' + memo.hits                     + '\n'
-      + 'CREATED  : ' + absoluteTime(memo.created_at) + '\n'
-      + 'UPDATED  : ' + absoluteTime(memo.updated_at) + '\n'
-      + 'LAST HIT : ' + absoluteTime(memo.last_hit)   + '\n'
-      + 'MEMO     : ' + memo.memo
+        'ID         : ' + memo.id                       + '\n'
+      + 'HITS       : ' + memo.hits                     + '\n'
+      + 'CREATED    : ' + absoluteTime(memo.created_at) + '\n'
+      + 'UPDATED    : ' + absoluteTime(memo.updated_at) + '\n'
+      + 'LAST HIT   : ' + absoluteTime(memo.last_hit)   + '\n'
+      + 'COORDINATE : ' + memo.coordinate               + '\n'
+      + 'MEMO       : ' + memo.memo
     );
 }
 
