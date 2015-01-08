@@ -47,18 +47,6 @@ var memo = function() {
         );
     };
 
-    var _touchByKeyword = function(keyword, callback) {
-        _db.run(
-            'UPDATE `memos` SET '
-          + "`last_hit` = ?, "
-          + "`hits`     = `hits` + 1 WHERE "
-          + "`memo` LIKE '%" + _escape(keyword) + "%' AND " // MATCH
-          + "`status`  != 'DELETED'",
-            [_now()],
-            callback
-        );
-    };
-
     var _touchById = function(id, callback) {
         _db.run(
             'UPDATE `memos` SET '
@@ -75,20 +63,10 @@ var memo = function() {
         if (keyword) {
             _db.all(
                 'SELECT * FROM `memos` WHERE '
-              + "`memo` LIKE '%" + _escape(keyword) + "%' AND " // MATCH
+              + "`memo` LIKE '%" + _escape(keyword) + "%' AND "
               + "`status` != 'DELETED' "
               + 'ORDER BY `last_hit` DESC',
-                function(err, data) {
-                    if (err) {
-                        return callback(err);
-                    }
-                    _touchByKeyword(keyword, function(tErr, tData) {
-                        if (tErr) {
-                            console.log(':( ' + tErr);
-                        }
-                        callback(null, data);
-                    });
-                }
+                callback
             );
         } else {
             _getAll(callback);
@@ -112,10 +90,7 @@ var memo = function() {
                     return callback(err);
                 }
                 _touchById(id, function(tErr, tData) {
-                    if (tErr) {
-                        console.log(':( ' + tErr);
-                    }
-                    callback(null, data);
+                    callback(tErr, data);
                 })
             }
         );
@@ -165,10 +140,7 @@ var memo = function() {
             }
             if (data.length) {
                 _touchById(data[0].id, function(tErr, tData) {
-                    if (tErr) {
-                        console.log(':( ' + tErr);
-                    }
-                    callback(null, data[0]);
+                    callback(tErr, data[0]);
                 });
             } else {
                 _add(memo, callback);

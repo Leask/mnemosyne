@@ -10,11 +10,11 @@ var env    = require('./env'),
 // utilities
 var type = function(object) {
     return Object.prototype.toString.call(object).slice(8, -1).toLowerCase();
-}
+};
 
 var isArray = function(object) {
     return type(object) === 'array';
-}
+};
 
 var absoluteTime = function(rawTime) {
     return new Date(rawTime).toString();
@@ -27,12 +27,18 @@ var relativeTime = function(rawTime) {
 var exit = function() {
     memo.Del();
     process.exit(1);
-}
+};
+
+var checkError = function(err) {
+    if (err) {
+        console.error(':( ' + err);
+        exit();
+    }
+};
 
 // check configurations
 if (!env) {
-    console.log(':( Error loading configurations');
-    exit();
+    checkError('Error loading configurations');
 }
 
 // patch prototypes
@@ -96,70 +102,53 @@ var render = function(data) {
 };
 
 var checkId = function(id) {
-    id = Number(id);
-    if (isNaN(id)) {
-        console.log(':( Error memo id');
-        exit();
+    if (!(id = Number(id))) {
+        checkError('Error memo id');
     }
     return id;
 };
 
 var get = function(id) {
     memo.GetById(checkId(id), function(err, data) {
-        if (err) {
-            console.log(':( ' + err);
-            exit();
-        }
+        checkError(err);
         render(data);
     });
 };
 
 var del = function(id) {
     memo.DelById(checkId(id), function(err, data) {
-        if (err) {
-            console.log(':( ' + err);
-            exit();
-        }
+        checkError(err);
         console.log(':) Done');
     });
 };
 
 var touch = function(text) {
+    if (!text.length) {
+        checkError('Empty memo');
+    }
     memo.Touch(text, function(err, data) {
-        if (err) {
-            console.log(':( ' + err);
-            exit();
-        }
+        checkError(err);
         render(data);
     })
 };
 
 var search = function() {
     memo.Search(text, function(err, data) {
-        if (err) {
-            console.log(':( ' + err);
-            exit();
-        }
+        checkError(err);
         render(data);
     })
 };
 
 var trash = function() {
     memo.GetTrash(function(err, data) {
-        if (err) {
-            console.log(':( ' + err);
-            exit();
-        }
+        checkError(err);
         render(data);
     })
 };
 
 var empty = function() {
     memo.EmptyTrash(function(err, data) {
-        if (err) {
-            console.log(':( ' + err);
-            exit();
-        }
+        checkError(err);
         console.log(':) Done');
     })
 };
@@ -187,12 +176,13 @@ var help = function() {
 }
 
 var unknownCommand = function() {
-    console.log(':( Unknown command');
+    console.error(':( Unknown command\n');
+    help();
 };
 
 var exec = function() {
-    command = (command || 'touch').trim();
-    text    = (text    || ''     ).trim();
+    command = (command || '').trim();
+    text    = (text    || '').trim();
     switch (command) {
         case 'touch':
         case 't':
@@ -234,10 +224,8 @@ var command = process.argv.shift();
 var text    = process.argv.join(' ');
 if (process.stdin._readableState.highWaterMark) {
     fetchStdin(function(err, text) {
-        if (err) {
-            console.log(':( ' + err);
-            exit();
-        }
+        checkError(err);
+        command = command ? command : 'touch';
         exec();
     });
 } else {
